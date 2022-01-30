@@ -419,7 +419,7 @@ def run_evaluation(
             limit_train_batches=24,
             limit_val_batches=3,
             gradient_clip_val=1.0,
-            checkpoint_callback=False
+            enable_checkpointing=False
         )
         trainer.fit(model, train_dataloader, val_dataloader)
 
