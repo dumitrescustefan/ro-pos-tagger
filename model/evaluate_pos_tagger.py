@@ -18,8 +18,12 @@ class TransformerModel(pl.LightningModule):
         self.model_name = model_name
         self.tokenizer = AutoTokenizer.from_pretrained(model_name)
         self.model = AutoModel.from_pretrained(model_name)
-        self.upos_layer = torch.nn.Linear(768, len(upos_tag_list))
-        self.xpos_layer = torch.nn.Linear(768, len(xpos_tag_list))
+        
+        hidden_size = self.get_hidden_size()
+        print(f"\tDetected hidden size is {hidden_size}")
+        
+        self.upos_layer = torch.nn.Linear(hidden_size, len(upos_tag_list))
+        self.xpos_layer = torch.nn.Linear(hidden_size, len(xpos_tag_list))
         self.dropout = nn.Dropout(0.1)
         self.loss = torch.nn.CrossEntropyLoss(ignore_index=-1)
 
@@ -31,6 +35,37 @@ class TransformerModel(pl.LightningModule):
         self.train_data = {"gold_upos":[], "pred_upos":[], "gold_xpos":[], "pred_xpos":[], "loss":[]}
         self.valid_data = {"gold_upos":[], "pred_upos":[], "gold_xpos":[], "pred_xpos":[], "loss":[]}
         self.test_data = {"gold_upos":[], "pred_upos":[], "gold_xpos":[], "pred_xpos":[], "loss":[]}
+
+        # add pad token
+        self.validate_pad_token()
+    
+    def validate_pad_token(self):
+        if self.tokenizer.pad_token is not None:
+            return
+        if self.tokenizer.sep_token is not None:
+            print(f"\tNo PAD token detected, automatically assigning the SEP token as PAD.")
+            self.tokenizer.pad_token = self.tokenizer.sep_token
+            return
+        if self.tokenizer.eos_token is not None:
+            print(f"\tNo PAD token detected, automatically assigning the EOS token as PAD.")
+            self.tokenizer.pad_token = self.tokenizer.eos_token
+            return
+        if self.tokenizer.bos_token is not None:
+            print(f"\tNo PAD token detected, automatically assigning the BOS token as PAD.")
+            self.tokenizer.pad_token = self.tokenizer.bos_token
+            return
+        if self.tokenizer.cls_token is not None:
+            print(f"\tNo PAD token detected, automatically assigning the CLS token as PAD.")
+            self.tokenizer.pad_token = self.tokenizer.cls_token
+            return
+        raise Exception("Could not detect SEP/EOS/BOS/CLS tokens, and thus could not assign a PAD token which is required.")
+
+    
+    def get_hidden_size(self):    
+        inputs = self.tokenizer("text", return_tensors="pt")
+        outputs = self.model(**inputs)
+        return outputs.last_hidden_state.size(-1)
+
 
     def forward(self, input_ids, attention_mask):
         output = self.model(
@@ -236,13 +271,34 @@ class MyDataset(Dataset):
 class MyCollator(object):
     def __init__(self, tokenizer, upos_tag_list, xpos_tag_list):
         self.tokenizer = tokenizer
+        self.validate_pad_token()
+        
         self.upos_tag_list = upos_tag_list
         self.xpos_tag_list = xpos_tag_list
-        try:
-            self.pad = tokenizer.pad_id
-        except:
-            self.pad = 0
-            print(f"Warning, tokenizer has no pad token, using default 0 index!")
+        self.pad = self.tokenizer.pad_token_id
+           
+    def validate_pad_token(self):
+        if self.tokenizer.pad_token is not None:
+            return
+        if self.tokenizer.sep_token is not None:
+            print(f"\tNo PAD token detected, automatically assigning the SEP token as PAD.")
+            self.tokenizer.pad_token = self.tokenizer.sep_token
+            return
+        if self.tokenizer.eos_token is not None:
+            print(f"\tNo PAD token detected, automatically assigning the EOS token as PAD.")
+            self.tokenizer.pad_token = self.tokenizer.eos_token
+            return
+        if self.tokenizer.bos_token is not None:
+            print(f"\tNo PAD token detected, automatically assigning the BOS token as PAD.")
+            self.tokenizer.pad_token = self.tokenizer.bos_token
+            return
+        if self.tokenizer.cls_token is not None:
+            print(f"\tNo PAD token detected, automatically assigning the CLS token as PAD.")
+            self.tokenizer.pad_token = self.tokenizer.cls_token
+            return
+        raise Exception("Could not detect SEP/EOS/BOS/CLS tokens, and thus could not assign a PAD token which is required.")
+
+
 
     def __call__(self, input_batch):
         """
@@ -366,11 +422,11 @@ def run_evaluation(
 
     my_collator = MyCollator(tokenizer=tokenizer, upos_tag_list=upos_tag_list, xpos_tag_list=xpos_tag_list)
 
-    train_dataloader = DataLoader(train_dataset, batch_size=batch_size, num_workers=0, shuffle=True,
+    train_dataloader = DataLoader(train_dataset, batch_size=batch_size, num_workers=4, shuffle=True,
                                   collate_fn=my_collator, pin_memory=True)
-    val_dataloader = DataLoader(val_dataset, batch_size=batch_size, num_workers=0, shuffle=False,
+    val_dataloader = DataLoader(val_dataset, batch_size=batch_size, num_workers=4, shuffle=False,
                                 collate_fn=my_collator, pin_memory=True)
-    test_dataloader = DataLoader(test_dataset, batch_size=batch_size, num_workers=0, shuffle=False,
+    test_dataloader = DataLoader(test_dataset, batch_size=batch_size, num_workers=4, shuffle=False,
                                  collate_fn=my_collator, pin_memory=True)
 
 
