@@ -416,8 +416,8 @@ def run_evaluation(
         trainer = pl.Trainer(
             gpus=gpus,
             callbacks=[early_stop],
-            limit_train_batches=24,
-            limit_val_batches=3,
+            #limit_train_batches=24,
+            #limit_val_batches=3,
             gradient_clip_val=1.0,
             enable_checkpointing=False
         )
