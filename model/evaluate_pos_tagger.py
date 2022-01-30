@@ -338,7 +338,6 @@ def run_evaluation(
 
         gpus: int = 1,
         batch_size: int = 32,
-        accumulate_grad_batches: int = 1,
         lr: float = 3e-5,
 
         experiment_iterations: int = 1,
@@ -347,12 +346,6 @@ def run_evaluation(
     ):
 
     print(f"Running {experiment_iterations} experiments with model {automodel_name}")
-
-    print("\t batch size is {}, accumulate grad batches is {}, final batch_size is {}\n".format(
-        batch_size,
-        accumulate_grad_batches,
-        batch_size * accumulate_grad_batches)
-    )
 
     tokenizer = AutoTokenizer.from_pretrained(tokenizer_name)
 
@@ -425,7 +418,6 @@ def run_evaluation(
             callbacks=[early_stop],
             limit_train_batches=24,
             limit_val_batches=3,
-            accumulate_grad_batches=accumulate_grad_batches,
             gradient_clip_val=1.0,
             checkpoint_callback=False
         )
@@ -532,7 +524,6 @@ if __name__ == "__main__":
         test_file = args.test_file,
         gpus = args.gpus,
         batch_size = args.batch_size,
-        accumulate_grad_batches = args.accumulate_grad_batches,
         lr = args.lr,
         experiment_iterations = args.experiment_iterations,
         results_file = args.results_file,
