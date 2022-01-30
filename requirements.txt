@@ -2,3 +2,4 @@ torch
 transformers
 stanza
 tqdm
+pytorch_lightning
