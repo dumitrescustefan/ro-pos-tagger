@@ -8,6 +8,7 @@ from transformers import AutoTokenizer, AutoModel
 from pytorch_lightning.callbacks import EarlyStopping
 import numpy as np
 
+os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
 class TransformerModel(pl.LightningModule):
     def __init__(self, model_name="dumitrescustefan/bert-base-romanian-cased-v1", upos_tag_list=[],
